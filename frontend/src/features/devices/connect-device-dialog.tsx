@@ -15,14 +15,13 @@ import {
 } from "@/components/ui/dialog";
 
 import { DeviceQrView } from "./device-qr-view";
-import { useConnectDevice } from "./hooks";
-import { useDeviceEvents } from "./use-device-events";
+import { useConnectDevice, useDeviceQr } from "./hooks";
 
-/** "Show QR / Connect" for an existing device — (re)starts the session and streams its QR. */
+/** "Show QR / Connect" for an existing device — (re)starts the session and polls its QR. */
 export function ConnectDeviceDialog({ deviceId }: { deviceId: string }) {
   const [open, setOpen] = React.useState(false);
   const connectDevice = useConnectDevice();
-  const events = useDeviceEvents(open ? deviceId : null);
+  const qr = useDeviceQr(open ? deviceId : null);
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
@@ -44,7 +43,11 @@ export function ConnectDeviceDialog({ deviceId }: { deviceId: string }) {
           <DialogTitle>Connect device</DialogTitle>
           <DialogDescription>Scan the QR with WhatsApp to link this device.</DialogDescription>
         </DialogHeader>
-        <DeviceQrView status={events.status} qr={events.qr} phone={events.phone} />
+        <DeviceQrView
+          status={qr.data?.status ?? null}
+          qr={qr.data?.qr ?? null}
+          phone={qr.data?.phone ?? null}
+        />
       </DialogContent>
     </Dialog>
   );

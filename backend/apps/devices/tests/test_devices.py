@@ -124,3 +124,18 @@ def test_connect_device(monkeypatch) -> None:
     response = api.post(f"/v1/devices/{device.id}/connect")
     assert response.status_code == 200
     assert response.data["status"] == Device.Status.INITIALIZING
+
+
+def test_device_qr_endpoint(monkeypatch) -> None:
+    _user, workspace, api = _setup()
+    device = Device.objects.create(workspace=workspace, name="qrd", status=Device.Status.QR)
+    monkeypatch.setattr(
+        WaGatewayClient,
+        "get_status",
+        lambda self, device_id: {"status": "qr", "qr": "data:image/png;base64,AAAA"},
+    )
+
+    response = api.get(f"/v1/devices/{device.id}/qr")
+    assert response.status_code == 200
+    assert response.data["status"] == "qr"
+    assert response.data["qr"].startswith("data:image")

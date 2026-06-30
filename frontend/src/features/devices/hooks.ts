@@ -46,3 +46,19 @@ export function useConnectDevice() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: DEVICES_KEY }),
   });
 }
+
+export interface DeviceQrResult {
+  status: string;
+  qr: string | null;
+  phone: string;
+}
+
+/** Polls the device's current status + QR (robust alternative to SSE behind proxies). */
+export function useDeviceQr(deviceId: string | null) {
+  return useQuery({
+    queryKey: ["device-qr", deviceId],
+    enabled: Boolean(deviceId),
+    refetchInterval: (query) => (query.state.data?.status === "connected" ? false : 2000),
+    queryFn: async () => (await api.get<DeviceQrResult>(`/devices/${deviceId}/qr`)).data,
+  });
+}

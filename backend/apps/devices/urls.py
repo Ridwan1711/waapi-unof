@@ -8,6 +8,7 @@ from .views import (
     DeviceEventsView,
     DeviceListCreateView,
     DeviceLogoutView,
+    DeviceQrView,
 )
 
 urlpatterns = [
@@ -15,5 +16,6 @@ urlpatterns = [
     path("<uuid:pk>", DeviceDetailView.as_view(), name="device-detail"),
     path("<uuid:pk>/connect", DeviceConnectView.as_view(), name="device-connect"),
     path("<uuid:pk>/logout", DeviceLogoutView.as_view(), name="device-logout"),
+    path("<uuid:pk>/qr", DeviceQrView.as_view(), name="device-qr"),
     path("<uuid:pk>/events", DeviceEventsView.as_view(), name="device-events"),
 ]

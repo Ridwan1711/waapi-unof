@@ -17,15 +17,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { DeviceQrView } from "./device-qr-view";
-import { useCreateDevice } from "./hooks";
-import { useDeviceEvents } from "./use-device-events";
+import { useCreateDevice, useDeviceQr } from "./hooks";
 
 export function AddDeviceDialog() {
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [deviceId, setDeviceId] = React.useState<string | null>(null);
   const createDevice = useCreateDevice();
-  const events = useDeviceEvents(open ? deviceId : null);
+  const qr = useDeviceQr(open ? deviceId : null);
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
@@ -42,7 +41,7 @@ export function AddDeviceDialog() {
   }
 
   React.useEffect(() => {
-    if (events.status === "connected") {
+    if (qr.data?.status === "connected") {
       const timer = setTimeout(() => {
         setOpen(false);
         setDeviceId(null);
@@ -50,7 +49,7 @@ export function AddDeviceDialog() {
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [events.status]);
+  }, [qr.data?.status]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -82,7 +81,11 @@ export function AddDeviceDialog() {
             </Button>
           </form>
         ) : (
-          <DeviceQrView status={events.status} qr={events.qr} phone={events.phone} />
+          <DeviceQrView
+            status={qr.data?.status ?? null}
+            qr={qr.data?.qr ?? null}
+            phone={qr.data?.phone ?? null}
+          />
         )}
       </DialogContent>
     </Dialog>

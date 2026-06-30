@@ -10,6 +10,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.accounts.models import User
+from apps.integrations.wa_gateway import WaGatewayClient, WaGatewayError
 from apps.workspaces.selectors import get_active_workspace
 
 from .models import Device
@@ -74,6 +75,28 @@ class DeviceLogoutView(APIView):
             return _not_found()
         logout_device(device)
         return Response(DeviceSerializer(device).data)
+
+
+class DeviceQrView(APIView):
+    """Poll-friendly current status + QR for a device (robust alternative to SSE)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        device = Device.objects.filter(pk=pk, workspace=get_active_workspace(request)).first()
+        if device is None:
+            return _not_found()
+
+        qr = None
+        status_value = device.status
+        try:
+            snapshot = WaGatewayClient().get_status(str(device.id))
+            status_value = snapshot.get("status") or device.status
+            qr = snapshot.get("qr")
+        except WaGatewayError:
+            # Node session not reachable yet — fall back to the persisted status.
+            pass
+        return Response({"status": status_value, "qr": qr, "phone": device.phone_number})
 
 
 def _not_found() -> Response:

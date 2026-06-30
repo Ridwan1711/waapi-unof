@@ -1,0 +1,11 @@
+# Development & test dependencies.
+-r base.txt
+
+# Lint + format (ruff replaces black/flake8/isort).
+ruff>=0.6,<0.9
+
+# Testing
+pytest>=8.3,<9
+pytest-django>=4.9,<5
+pytest-cov>=5,<7
+factory-boy>=3.3,<4

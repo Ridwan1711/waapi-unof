@@ -1,0 +1,25 @@
+# Normalize line endings to LF in the repo (important: this repo is developed
+# on Windows but runs on Linux containers/Dokploy). Avoids CRLF noise & broken
+# shell scripts inside containers.
+* text=auto eol=lf
+
+# Shell scripts must always be LF
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Windows-only scripts keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Treat these as binary (no diff / no eol conversion)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

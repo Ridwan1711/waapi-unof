@@ -1,0 +1,191 @@
+# =============================================================================
+# waapi-unof — Docker Compose (primary, Dokploy-friendly)
+# -----------------------------------------------------------------------------
+# Public services : frontend, api
+# Internal only   : wa-service, postgres, redis, worker, beat  (network: appnet)
+#
+# Deploy on Dokploy:
+#   - Set env vars in the Dokploy UI (not committed .env).
+#   - Add a domain for `frontend` and `api` in the Dokploy UI; Dokploy wires
+#     Traefik + TLS for you. (Alternatively, uncomment the Traefik labels below.)
+#
+# Run behind the bundled nginx (non-Dokploy host):
+#   docker compose --profile nginx up -d --build
+#
+# NOTE: becomes fully buildable once Phases 5-7 add each service's source.
+# =============================================================================
+
+name: waapi-unof
+
+# Reusable fragments -----------------------------------------------------------
+x-django-build: &django-build
+  context: .
+  dockerfile: backend/Dockerfile
+
+x-env: &default-env
+  env_file:
+    - path: .env
+      required: false
+
+services:
+  # --------------------------------------------------------------------- data
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-waapi}
+      POSTGRES_USER: ${POSTGRES_USER:-waapi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-waapi}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-waapi} -d $${POSTGRES_DB:-waapi}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [appnet]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [appnet]
+
+  # ------------------------------------------------------------------ backend
+  api:
+    <<: *default-env
+    build: *django-build
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - media:/data/media
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    networks: [appnet]
+    # --- Optional: label-based Traefik routing (instead of Dokploy UI domains)
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.http.routers.waapi-api.rule=Host(`${API_DOMAIN}`)
+    #   - traefik.http.routers.waapi-api.entrypoints=websecure
+    #   - traefik.http.routers.waapi-api.tls.certresolver=letsencrypt
+    #   - traefik.http.services.waapi-api.loadbalancer.server.port=8000
+
+  worker:
+    <<: *default-env
+    build: *django-build
+    restart: unless-stopped
+    # Skip the api migrate/collectstatic entrypoint; run Celery directly.
+    entrypoint: ["celery"]
+    command: ["-A", "config", "worker", "-l", "info", "--concurrency", "4"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - media:/data/media
+    networks: [appnet]
+
+  beat:
+    <<: *default-env
+    build: *django-build
+    restart: unless-stopped
+    entrypoint: ["celery"]
+    command: ["-A", "config", "beat", "-l", "info"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [appnet]
+
+  # -------------------------------------------------------------- whatsapp svc
+  wa-service:
+    <<: *default-env
+    build:
+      context: .
+      dockerfile: wa-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - wa-sessions:/data/sessions
+    expose:
+      - "8090"
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://localhost:'+(process.env.WA_SERVICE_PORT||8090)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks: [appnet]
+
+  # ----------------------------------------------------------------- frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-waapi-unof}
+    restart: unless-stopped
+    depends_on:
+      - api
+    expose:
+      - "3000"
+    networks: [appnet]
+    # --- Optional Traefik labels
+    # labels:
+    #   - traefik.enable=true
+    #   - traefik.http.routers.waapi-frontend.rule=Host(`${FRONTEND_DOMAIN}`)
+    #   - traefik.http.routers.waapi-frontend.entrypoints=websecure
+    #   - traefik.http.routers.waapi-frontend.tls.certresolver=letsencrypt
+    #   - traefik.http.services.waapi-frontend.loadbalancer.server.port=3000
+
+  # ---------------------------------------------- optional reverse proxy (non-Dokploy)
+  nginx:
+    image: nginx:1.27-alpine
+    profiles: ["nginx"]
+    restart: unless-stopped
+    depends_on:
+      - api
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    networks: [appnet]
+
+volumes:
+  pgdata:
+  redisdata:
+  wa-sessions:
+  media:
+
+networks:
+  appnet:
+    driver: bridge

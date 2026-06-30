@@ -1,0 +1,8 @@
+# Production-only dependencies (installed in the Docker image, Linux).
+-r base.txt
+
+# uvloop/httptools-accelerated ASGI worker (Linux only).
+uvicorn[standard]>=0.30,<0.40
+
+# Error tracking (active only when SENTRY_DSN is set).
+sentry-sdk>=2,<3

@@ -1,0 +1,34 @@
+# Root .dockerignore — applies to all builds (build context = repo root).
+# Keeps build contexts lean. Each Dockerfile only COPYs the paths it needs.
+
+.git
+.github
+docs
+
+# Dependencies / build artifacts (rebuilt inside the image)
+**/node_modules
+**/.next
+**/out
+**/dist
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+
+# Local env & secrets (provided at runtime instead)
+**/.env
+**/.env.*
+!**/.env.example
+
+# Runtime data & logs
+data
+**/logs
+**/*.log
+
+# Editor / OS noise
+**/.DS_Store
+**/.idea
+**/.vscode

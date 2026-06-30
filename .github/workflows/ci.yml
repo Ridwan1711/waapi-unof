@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Each job auto-detects whether its service has been scaffolded yet, so CI is
+  # green during early phases and progressively activates as code lands.
+  # ---------------------------------------------------------------------------
+  backend:
+    name: Backend (Django)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect backend
+        id: detect
+        run: |
+          if [ -f backend/requirements/dev.txt ] || [ -f backend/pyproject.toml ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::backend not scaffolded yet — skipping"
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.detect.outputs.exists == 'true'
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+      - name: Lint (ruff)
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: backend
+        run: ruff check .
+      - name: Django system checks
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: backend
+        run: python manage.py check
+      - name: Tests (pytest)
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: backend
+        run: pytest -q
+
+  frontend:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect frontend
+        id: detect
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::frontend not scaffolded yet — skipping"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.exists == 'true'
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm ci
+      - name: Lint
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm run lint
+      - name: Type-check & build
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm run build
+
+  wa-service:
+    name: WA Service (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect wa-service
+        id: detect
+        run: |
+          if [ -f wa-service/package.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::wa-service not scaffolded yet — skipping"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.exists == 'true'
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: wa-service/package-lock.json
+      - name: Install dependencies
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: wa-service
+        run: npm ci
+      - name: Lint
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: wa-service
+        run: npm run lint
+      - name: Type-check & build
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: wa-service
+        run: npm run build

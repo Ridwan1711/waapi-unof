@@ -15,7 +15,11 @@ const log = logger.child({ module: "provider-manager" });
 export class ProviderManager {
   private readonly sessions = new Map<string, WhatsAppProvider>();
 
-  constructor(private readonly bridge: EventBridge) {}
+  constructor(
+    private readonly bridge: EventBridge,
+    // Injectable for testing; defaults to the real engine factory.
+    private readonly providerFactory: (deviceId: string) => WhatsAppProvider = createProvider,
+  ) {}
 
   has(deviceId: string): boolean {
     return this.sessions.has(deviceId);
@@ -37,7 +41,7 @@ export class ProviderManager {
   init(deviceId: string): WaStatus {
     let provider = this.sessions.get(deviceId);
     if (!provider) {
-      provider = createProvider(deviceId);
+      provider = this.providerFactory(deviceId);
       provider.on((event) => this.bridge.publish(event));
       this.sessions.set(deviceId, provider);
     }

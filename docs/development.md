@@ -31,8 +31,7 @@ Quality:
 
 ```bash
 ruff check .      # lint
-black .           # format
-mypy .            # types
+ruff format .     # format
 pytest            # tests
 ```
 
@@ -52,6 +51,7 @@ Quality:
 ```bash
 npm run lint
 npm run build      # also type-checks
+npm test           # Vitest + Testing Library
 ```
 
 Set `NEXT_PUBLIC_API_BASE_URL` to your running API (e.g. `http://localhost:8000`).
@@ -69,6 +69,7 @@ Quality:
 ```bash
 npm run lint
 npm run build      # tsc
+npm test           # Vitest
 ```
 
 Keep this service **WhatsApp-only**. New engines are added as adapters under

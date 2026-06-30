@@ -124,6 +124,19 @@ Built in verifiable phases — see [`docs/architecture.md`](docs/architecture.md
 
 `Planning → Architecture → Scaffolding → Docker → Backend → Frontend → WA service → API comms → Auth → QR login → Devices → Messaging → Webhooks → Scheduler → Dashboard → Testing → Docs`
 
+## Testing
+
+Each service has its own suite (run from the service directory):
+
+| Service | Command |
+| --- | --- |
+| backend | `pytest` |
+| frontend | `npm test` (Vitest + Testing Library) |
+| wa-service | `npm test` (Vitest) |
+
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs lint,
+type-check/build, and tests for all three services on every push and PR.
+
 ## Contributing
 
 Contributions are welcome! Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) and our

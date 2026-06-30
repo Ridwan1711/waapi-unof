@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import type { NextFunction, Request, Response } from "express";
 
 import { config } from "../../config";
+import { signPayload } from "../../utils/signing";
 
 const MAX_SKEW_MS = 5 * 60 * 1000;
 
@@ -33,11 +34,7 @@ export function verifyInternalSignature(req: Request, res: Response, next: NextF
   }
 
   const body = req.rawBody ?? Buffer.from("");
-  const expected = crypto
-    .createHmac("sha256", config.INTERNAL_API_SECRET)
-    .update(`${timestamp}.`)
-    .update(body)
-    .digest("hex");
+  const expected = signPayload(config.INTERNAL_API_SECRET, timestamp, body);
 
   const provided = Buffer.from(signature);
   const expectedBuffer = Buffer.from(expected);

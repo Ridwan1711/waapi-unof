@@ -1,18 +1,20 @@
-import type { Metadata } from "next";
+"use client";
 
-import { BarChart3, MessageSquare, Smartphone, Webhook } from "lucide-react";
+import { Bot, MessageSquare, Smartphone, Webhook } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-export const metadata: Metadata = { title: "Overview" };
-
-const STATS = [
-  { label: "Connected devices", value: "0", icon: Smartphone },
-  { label: "Messages (30d)", value: "0", icon: MessageSquare },
-  { label: "Active webhooks", value: "0", icon: Webhook },
-  { label: "Delivery rate", value: "—", icon: BarChart3 },
-] as const;
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useMe } from "@/features/account/hooks";
+import { useAutoReplyRules } from "@/features/automation/hooks";
+import { useDevices } from "@/features/devices/hooks";
+import { useMessages } from "@/features/messages/hooks";
+import { useWebhooks } from "@/features/webhooks/hooks";
 
 const STEPS = [
   "Generate an API key from the API Keys page.",
@@ -21,12 +23,34 @@ const STEPS = [
 ];
 
 export default function OverviewPage() {
+  const me = useMe();
+  const devices = useDevices();
+  const webhooks = useWebhooks();
+  const messages = useMessages();
+  const rules = useAutoReplyRules();
+
+  const deviceList = devices.data ?? [];
+  const connected = deviceList.filter((d) => d.status === "connected").length;
+
+  const stats = [
+    { label: "Connected devices", value: `${connected}/${deviceList.length}`, icon: Smartphone },
+    { label: "Messages", value: String(messages.data?.pagination.count ?? 0), icon: MessageSquare },
+    {
+      label: "Active webhooks",
+      value: String((webhooks.data ?? []).filter((w) => w.is_active).length),
+      icon: Webhook,
+    },
+    { label: "Auto-reply rules", value: String((rules.data ?? []).length), icon: Bot },
+  ];
+
+  const greeting = me.data ? `Welcome, ${me.data.user.full_name || me.data.user.email}` : "Overview";
+
   return (
     <>
-      <PageHeader title="Overview" description="A snapshot of your workspace." />
+      <PageHeader title={greeting} description="A snapshot of your workspace." />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {STATS.map((stat) => {
+        {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.label}>

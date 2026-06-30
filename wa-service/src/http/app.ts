@@ -12,6 +12,7 @@ import { internalRouter } from "./routes/internal";
 export interface CreatedApp {
   app: express.Express;
   manager: ProviderManager;
+  bridge: EventBridge;
 }
 
 export function createApp(): CreatedApp {
@@ -38,5 +39,5 @@ export function createApp(): CreatedApp {
   app.use(notFound);
   app.use(errorHandler);
 
-  return { app, manager };
+  return { app, manager, bridge };
 }

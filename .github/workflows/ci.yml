@@ -88,6 +88,10 @@ jobs:
         if: steps.detect.outputs.exists == 'true'
         working-directory: frontend
         run: npm run build
+      - name: Test
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm test
 
   wa-service:
     name: WA Service (Node)
@@ -121,3 +125,7 @@ jobs:
         if: steps.detect.outputs.exists == 'true'
         working-directory: wa-service
         run: npm run build
+      - name: Test
+        if: steps.detect.outputs.exists == 'true'
+        working-directory: wa-service
+        run: npm test

@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { DeviceQrView } from "./device-qr-view";
 import { useCreateDevice } from "./hooks";
 import { useDeviceEvents } from "./use-device-events";
 
@@ -81,27 +82,7 @@ export function AddDeviceDialog() {
             </Button>
           </form>
         ) : (
-          <div className="flex flex-col items-center gap-3 py-2 text-center">
-            {events.status === "connected" ? (
-              <p className="text-sm font-medium text-emerald-600">
-                Connected{events.phone ? ` · ${events.phone}` : ""}
-              </p>
-            ) : events.qr ? (
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={events.qr}
-                  alt="WhatsApp QR code"
-                  className="h-56 w-56 rounded-md border"
-                />
-                <p className="text-sm text-muted-foreground">
-                  WhatsApp → Linked devices → Link a device, then scan.
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">Starting session…</p>
-            )}
-          </div>
+          <DeviceQrView status={events.status} qr={events.qr} phone={events.phone} />
         )}
       </DialogContent>
     </Dialog>

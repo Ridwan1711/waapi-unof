@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AddDeviceDialog } from "@/features/devices/add-device-dialog";
+import { ConnectDeviceDialog } from "@/features/devices/connect-device-dialog";
 import { useDeleteDevice, useDevices, useLogoutDevice } from "@/features/devices/hooks";
 import type { DeviceStatus } from "@/types";
 
@@ -63,6 +64,7 @@ export default function DevicesPage() {
                   <Badge variant={STATUS_VARIANT[device.status] ?? "secondary"}>
                     {device.status}
                   </Badge>
+                  {device.status !== "connected" && <ConnectDeviceDialog deviceId={device.id} />}
                   <Button
                     variant="ghost"
                     size="icon"

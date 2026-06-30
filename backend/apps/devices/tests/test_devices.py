@@ -108,3 +108,19 @@ def test_logout_device(monkeypatch) -> None:
     response = api.post(f"/v1/devices/{device.id}/logout")
     assert response.status_code == 200
     assert response.data["status"] == Device.Status.LOGGED_OUT
+
+
+def test_connect_device(monkeypatch) -> None:
+    _user, workspace, api = _setup()
+    monkeypatch.setattr(
+        WaGatewayClient,
+        "init_session",
+        lambda self, device_id: {"deviceId": device_id, "status": "initializing"},
+    )
+    device = Device.objects.create(
+        workspace=workspace, name="to-connect", status=Device.Status.DISCONNECTED
+    )
+
+    response = api.post(f"/v1/devices/{device.id}/connect")
+    assert response.status_code == 200
+    assert response.data["status"] == Device.Status.INITIALIZING

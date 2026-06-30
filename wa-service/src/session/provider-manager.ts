@@ -37,14 +37,23 @@ export class ProviderManager {
     return this.sessions.size;
   }
 
-  /** Create (if needed) and initialize a session. Returns the current status. */
+  /** Create (if needed) and initialize a session. Idempotent: an already
+   * starting/running session is left untouched. Returns the current status. */
   init(deviceId: string): WaStatus {
-    let provider = this.sessions.get(deviceId);
-    if (!provider) {
-      provider = this.providerFactory(deviceId);
-      provider.on((event) => this.bridge.publish(event));
-      this.sessions.set(deviceId, provider);
+    const existing = this.sessions.get(deviceId);
+    if (existing) {
+      const status = existing.getStatus();
+      if (status === "initializing" || status === "qr" || status === "connected") {
+        return status;
+      }
+      // Terminal state (disconnected/failed/logged_out): tear down and recreate.
+      void existing.destroy().catch(() => undefined);
+      this.sessions.delete(deviceId);
     }
+
+    const provider = this.providerFactory(deviceId);
+    provider.on((event) => this.bridge.publish(event));
+    this.sessions.set(deviceId, provider);
     // Initialization (launching the browser, handshaking) happens in the
     // background; progress is reported via emitted events.
     provider.init().catch((err: unknown) => {

@@ -38,3 +38,11 @@ export function useLogoutDevice() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: DEVICES_KEY }),
   });
 }
+
+export function useConnectDevice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => (await api.post<Device>(`/devices/${id}/connect`)).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: DEVICES_KEY }),
+  });
+}

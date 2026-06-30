@@ -47,6 +47,18 @@ def create_device(*, workspace, name: str, provider: str = Device.Provider.WWEBJ
     return device
 
 
+def connect_device(device: Device) -> Device:
+    """(Re)start the WhatsApp session for an existing device (to re-show its QR)."""
+    try:
+        WaGatewayClient().init_session(str(device.id))
+        device.status = Device.Status.INITIALIZING
+    except WaGatewayError:
+        logger.warning("WA gateway connect failed for device %s", device.id)
+        device.status = Device.Status.FAILED
+    device.save(update_fields=["status", "updated_at"])
+    return device
+
+
 def logout_device(device: Device) -> Device:
     """Log the device out of WhatsApp (best-effort) and mark it logged out."""
     try:

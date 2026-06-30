@@ -14,7 +14,7 @@ from apps.workspaces.selectors import get_active_workspace
 
 from .models import Device
 from .serializers import DeviceCreateSerializer, DeviceSerializer
-from .services import create_device, delete_device, logout_device
+from .services import connect_device, create_device, delete_device, logout_device
 from .sse import iter_device_events
 
 
@@ -52,6 +52,17 @@ class DeviceDetailView(APIView):
             return _not_found()
         delete_device(device)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DeviceConnectView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        device = Device.objects.filter(pk=pk, workspace=get_active_workspace(request)).first()
+        if device is None:
+            return _not_found()
+        connect_device(device)
+        return Response(DeviceSerializer(device).data)
 
 
 class DeviceLogoutView(APIView):

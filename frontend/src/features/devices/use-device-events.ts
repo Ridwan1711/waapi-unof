@@ -56,6 +56,11 @@ export function useDeviceEvents(deviceId: string | null): DeviceEventsState {
           }));
         } else if (evt.type === "disconnected") {
           setState((prev) => ({ ...prev, status: "disconnected" }));
+        } else if (
+          evt.type === "state" &&
+          (evt.data?.state === "failed" || evt.data?.state === "auth_failure")
+        ) {
+          setState((prev) => ({ ...prev, status: "failed" }));
         }
       } catch {
         /* ignore malformed frame */

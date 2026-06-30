@@ -47,7 +47,13 @@ export class WwebjsAdapter implements WhatsAppProvider {
       puppeteer: {
         headless: true,
         executablePath: config.PUPPETEER_EXECUTABLE_PATH || undefined,
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+        ],
+        timeout: 60_000,
       },
     });
     this.registerHandlers();
@@ -99,7 +105,19 @@ export class WwebjsAdapter implements WhatsAppProvider {
     // device's profile, so the browser can launch (fixes "profile in use").
     clearStaleChromiumLocks(join(config.WA_DATA_DIR, `session-${this.deviceId}`));
     log.info({ deviceId: this.deviceId }, "initializing session");
-    await this.client.initialize();
+    try {
+      await this.client.initialize();
+    } catch (err) {
+      // Surface the failure (e.g. Chromium OOM / launch error) instead of leaving
+      // the device stuck on "initializing" forever.
+      this.status = "failed";
+      log.error({ err, deviceId: this.deviceId }, "session init failed");
+      this.emit("state", {
+        state: "failed",
+        message: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
+    }
   }
 
   getStatus(): WaStatus {

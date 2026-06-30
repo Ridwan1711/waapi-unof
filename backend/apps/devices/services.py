@@ -95,7 +95,7 @@ def apply_wa_event(payload: dict[str, Any]) -> None:
     update_fields = ["last_seen_at", "updated_at"]
 
     new_status = _STATUS_BY_EVENT.get(event_type)
-    if event_type == "state" and data.get("state") == "auth_failure":
+    if event_type == "state" and data.get("state") in ("auth_failure", "failed"):
         new_status = Device.Status.FAILED
     if new_status is not None:
         device.status = new_status

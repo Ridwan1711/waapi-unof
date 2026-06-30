@@ -12,6 +12,11 @@ export function DeviceQrView({ status, qr, phone }: DeviceQrViewProps) {
         <p className="text-sm font-medium text-emerald-600">
           Connected{phone ? ` · ${phone}` : ""}
         </p>
+      ) : status === "failed" ? (
+        <p className="text-sm font-medium text-destructive">
+          Couldn&apos;t start the session — usually low memory. Check the wa-service logs, then
+          close and try again.
+        </p>
       ) : qr ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}

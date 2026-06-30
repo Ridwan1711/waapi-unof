@@ -101,6 +101,13 @@ services:
         condition: service_healthy
     volumes:
       - media:/data/media
+    # Override the backend image's HTTP healthcheck: ping the Celery worker.
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config inspect ping -d celery@$$(hostname) || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks: [appnet]
 
   beat:
@@ -114,6 +121,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    # Beat has no HTTP endpoint and no inspect-ping; disable the inherited
+    # image healthcheck so it isn't falsely reported "unhealthy".
+    healthcheck:
+      disable: true
     networks: [appnet]
 
   # -------------------------------------------------------------- whatsapp svc

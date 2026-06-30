@@ -1,8 +1,11 @@
+import { join } from "node:path";
+
 import QRCode from "qrcode";
 import { Client, MessageMedia } from "whatsapp-web.js";
 
 import { createAuthStrategy } from "../auth-store";
 import { config } from "../config";
+import { clearStaleChromiumLocks } from "../utils/chromium";
 import { logger } from "../utils/logger";
 import { sleep } from "../utils/errors";
 import type {
@@ -92,6 +95,9 @@ export class WwebjsAdapter implements WhatsAppProvider {
 
   async init(): Promise<void> {
     this.status = "initializing";
+    // Clear any stale Chromium lock left by a previous container/crash for THIS
+    // device's profile, so the browser can launch (fixes "profile in use").
+    clearStaleChromiumLocks(join(config.WA_DATA_DIR, `session-${this.deviceId}`));
     log.info({ deviceId: this.deviceId }, "initializing session");
     await this.client.initialize();
   }
